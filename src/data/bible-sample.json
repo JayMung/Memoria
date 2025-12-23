@@ -1,0 +1,54 @@
+{
+  "metadata": {
+    "name": "Bible Catholique",
+    "language": "fr",
+    "books": 73,
+    "version": "1.0"
+  },
+  "books": [
+    {
+      "id": "genesis",
+      "name": "Genèse",
+      "testament": "old",
+      "chapters": [
+        {
+          "number": 1,
+          "verses": [
+            {
+              "number": 1,
+              "text": "Au commencement, Dieu créa le ciel et la terre."
+            },
+            {
+              "number": 2,
+              "text": "La terre était informe et vide ; il y avait des ténèbres au-dessus de l'abîme, et le souffle de Dieu planait au-dessus des eaux."
+            },
+            {
+              "number": 3,
+              "text": "Dieu dit : « Que la lumière soit ! » Et la lumière fut."
+            },
+            {
+              "number": 4,
+              "text": "Dieu vit que la lumière était bonne, et Dieu sépara la lumière des ténèbres."
+            },
+            {
+              "number": 5,
+              "text": "Dieu appela la lumière « jour », et les ténèbres « nuit ». Il y eut un soir, il y eut un matin : premier jour."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exodus",
+      "name": "Exode",
+      "testament": "old",
+      "chapters": []
+    },
+    {
+      "id": "matthew",
+      "name": "Matthieu",
+      "testament": "new",
+      "chapters": []
+    }
+  ]
+}
