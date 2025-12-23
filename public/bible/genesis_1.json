@@ -1,0 +1,26 @@
+{
+    "book": "Genèse",
+    "chapter": 1,
+    "verses": [
+        {
+            "v": 1,
+            "t": "Au commencement, Dieu créa le ciel et la terre."
+        },
+        {
+            "v": 2,
+            "t": "La terre était informe et vide ; les ténèbres couvraient l'abîme, et l'Esprit de Dieu planait sur les eaux."
+        },
+        {
+            "v": 3,
+            "t": "Dieu dit : 'Que la lumière soit.' Et la lumière fut."
+        },
+        {
+            "v": 4,
+            "t": "Dieu vit que la lumière était bonne ; et Dieu sépara la lumière d'avec les ténèbres."
+        },
+        {
+            "v": 5,
+            "t": "Dieu appela la lumière jour, et il appela les ténèbres nuit. Ainsi, il y eut un soir, et il y eut un matin : ce fut le premier jour."
+        }
+    ]
+}

@@ -39,11 +39,11 @@ export default defineSchema({
     imageMentale: v.string(), // Description textuelle de l'image
     typologie: v.string(), // Lecture AT -> NT
     versetsCles: v.array(v.string()), // Références ou textes
-    apologétique: v.object({
-      véritéAffirmée: v.string(),
+    apologetique: v.object({
+      veriteAffirmee: v.string(), // Also standardized nested fields to satisfy strict ASCII requirements just in case
       versetsAppui: v.array(v.string()),
       objection: v.string(),
-      réponse: v.string(),
+      reponse: v.string(),
     }),
     placeHistoireSalut: v.string(),
     applicationSpirituelle: v.string(),

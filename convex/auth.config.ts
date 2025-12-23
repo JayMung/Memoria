@@ -1,5 +1,10 @@
-import { convexAuth } from "@convex-dev/auth/clerk";
- 
-export const { auth, signIn, signOut, isAuthenticated } = convexAuth({
-  providers: [], // We use Clerk for the UI, this configures the backend
-});
+export default {
+  providers: [
+    {
+      // Clerk Frontend API URL from your Clerk Dashboard
+      // This should be set as CLERK_JWT_ISSUER_DOMAIN in Convex Dashboard
+      domain: process.env.CLERK_JWT_ISSUER_DOMAIN,
+      applicationID: "convex",
+    },
+  ],
+};

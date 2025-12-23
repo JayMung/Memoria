@@ -3,12 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, Check, BookOpen, Brain, Shield, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 const Onboarding = () => {
   const [step, setStep] = useState(1);
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [selectedRhythm, setSelectedRhythm] = useState<string | null>(null);
   const navigate = useNavigate();
+  const storeUser = useMutation(api.users.storeUser);
 
   const goals = [
     { id: "understand", icon: BookOpen, title: "Comprendre la Bible", desc: "Saisir le sens global de l'Histoire du Salut" },
@@ -22,12 +25,21 @@ const Onboarding = () => {
     { id: "deep", icon: Clock, title: "Approfondi", desc: "15-20 min / jour", time: 20 },
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1 && selectedGoal) {
       setStep(2);
     } else if (step === 2 && selectedRhythm) {
-      // In a real app, save to backend/Convex here
-      navigate("/dashboard");
+      try {
+        await storeUser({
+          goal: selectedGoal!,
+          rhythm: selectedRhythm!,
+        });
+        navigate("/dashboard");
+      } catch (error) {
+        console.error("Failed to save preferences:", error);
+        // Fallback or show error
+        navigate("/dashboard");
+      }
     }
   };
 
@@ -54,8 +66,8 @@ const Onboarding = () => {
               {step === 1 ? "Quel est votre objectif ?" : "Choisissez votre rythme"}
             </CardTitle>
             <CardDescription>
-              {step === 1 
-                ? "Nous adapterons le parcours selon votre besoin." 
+              {step === 1
+                ? "Nous adapterons le parcours selon votre besoin."
                 : "La régularité est la clé de la mémorisation."}
             </CardDescription>
           </CardHeader>
@@ -66,15 +78,13 @@ const Onboarding = () => {
                   <button
                     key={goal.id}
                     onClick={() => setSelectedGoal(goal.id)}
-                    className={`w-full text-left p-4 rounded-lg border-2 transition-all flex items-start gap-4 ${
-                      selectedGoal === goal.id
-                        ? "border-amber-600 bg-amber-50 dark:bg-amber-950/20"
-                        : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                    }`}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition-all flex items-start gap-4 ${selectedGoal === goal.id
+                      ? "border-amber-600 bg-amber-50 dark:bg-amber-950/20"
+                      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                      }`}
                   >
-                    <div className={`p-2 rounded-full ${
-                      selectedGoal === goal.id ? "bg-amber-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                    }`}>
+                    <div className={`p-2 rounded-full ${selectedGoal === goal.id ? "bg-amber-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                      }`}>
                       <goal.icon className="h-5 w-5" />
                     </div>
                     <div>
@@ -91,15 +101,13 @@ const Onboarding = () => {
                   <button
                     key={rhythm.id}
                     onClick={() => setSelectedRhythm(rhythm.id)}
-                    className={`w-full text-left p-4 rounded-lg border-2 transition-all flex items-center gap-4 ${
-                      selectedRhythm === rhythm.id
-                        ? "border-amber-600 bg-amber-50 dark:bg-amber-950/20"
-                        : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                    }`}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition-all flex items-center gap-4 ${selectedRhythm === rhythm.id
+                      ? "border-amber-600 bg-amber-50 dark:bg-amber-950/20"
+                      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                      }`}
                   >
-                    <div className={`p-2 rounded-full ${
-                      selectedRhythm === rhythm.id ? "bg-amber-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                    }`}>
+                    <div className={`p-2 rounded-full ${selectedRhythm === rhythm.id ? "bg-amber-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                      }`}>
                       <rhythm.icon className="h-5 w-5" />
                     </div>
                     <div className="flex-1">
@@ -113,7 +121,7 @@ const Onboarding = () => {
             )}
 
             <div className="pt-6 flex justify-end">
-              <Button 
+              <Button
                 onClick={handleNext}
                 disabled={step === 1 ? !selectedGoal : !selectedRhythm}
                 className="bg-amber-600 hover:bg-amber-700 text-white"

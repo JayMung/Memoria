@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn, useAuth } from "@clerk/clerk-react";
-import { ConvexProviderWithClerk } from "convex-clerk";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 
 // Pages
@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import SignUpPage from "./pages/SignUp";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
+import Chapter from "./pages/Chapter";
 import NotFound from "./pages/NotFound";
 
 // Initialize Convex
@@ -41,8 +42,8 @@ const App = () => (
               <Route path="/sign-up" element={<SignUpPage />} />
 
               {/* Protected Routes */}
-              <Route 
-                path="/onboarding" 
+              <Route
+                path="/onboarding"
                 element={
                   <>
                     <SignedIn>
@@ -52,10 +53,10 @@ const App = () => (
                       <RedirectToSignIn />
                     </SignedOut>
                   </>
-                } 
+                }
               />
-              <Route 
-                path="/dashboard" 
+              <Route
+                path="/dashboard"
                 element={
                   <>
                     <SignedIn>
@@ -65,7 +66,20 @@ const App = () => (
                       <RedirectToSignIn />
                     </SignedOut>
                   </>
-                } 
+                }
+              />
+              <Route
+                path="/chapter/:chapterId"
+                element={
+                  <>
+                    <SignedIn>
+                      <Chapter />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
               />
 
               {/* Catch-all */}
