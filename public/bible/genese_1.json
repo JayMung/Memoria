@@ -1,0 +1,130 @@
+{
+  "book": "Genèse",
+  "chapter": 1,
+  "verses": [
+    {
+      "v": 1,
+      "t": "Au commencement Dieu créa le ciel et la terre."
+    },
+    {
+      "v": 2,
+      "t": "La terre était informe et vide ; les ténèbres couvraient l'abîme, et l'Esprit de Dieu se mouvait au-dessus des eaux."
+    },
+    {
+      "v": 3,
+      "t": "Dieu dit : \" Que la lumière soit ! \" et la lumière fut."
+    },
+    {
+      "v": 4,
+      "t": "Et Dieu vit que la lumière était bonne ; et Dieu sépara la lumière et les ténèbres."
+    },
+    {
+      "v": 5,
+      "t": "Dieu appela la lumière jour, et les ténèbres Nuit.   Et il y eut un soir, et il y eut un matin ; ce fut le premier jour."
+    },
+    {
+      "v": 6,
+      "t": "Dieu dit : \" Qu'il y ait un firmament entre les eaux, et qu'il sépare les eaux d'avec les eaux. \""
+    },
+    {
+      "v": 7,
+      "t": "Et Dieu fit le firmament, et il sépara les eaux qui sont au-dessous du firmament d'avec les eaux qui sont au-dessus du firmament. Et cela fut ainsi."
+    },
+    {
+      "v": 8,
+      "t": "Dieu appela le firmament Ciel.   Et il y eut un soir et il y eut un matin ; ce fut le second jour."
+    },
+    {
+      "v": 9,
+      "t": "Dieu dit : \" Que les eaux qui sont au-dessous du ciel se rassemblent en un seul lieu, et que le sec paraisse. \" Et cela fut ainsi."
+    },
+    {
+      "v": 10,
+      "t": "Dieu appela le sec Terre, et il appela Mer l'amas des eaux. Et Dieu vit que cela était bon."
+    },
+    {
+      "v": 11,
+      "t": "Puis Dieu dit : \" Que la terre fasse pousser du gazon, des herbes portant semence, des arbres à fruit produisant, selon leur espèce, du fruit ayant en soi sa semence, sur la terre. \" Et cela fut ainsi."
+    },
+    {
+      "v": 12,
+      "t": "Et la terre fit sortir du gazon, des herbes portant semence selon leur espèce, et des arbres produisant, selon leur espèce, du fruit ayant en soi sa semence. Et Dieu vit que cela était bon."
+    },
+    {
+      "v": 13,
+      "t": "Et il y eut un soir, et il y eut un matin ; ce fut le troisième jour."
+    },
+    {
+      "v": 14,
+      "t": "Dieu dit : \" Qu'il y ait des luminaires dans le firmament du ciel pour séparer le jour et la nuit ; qu'ils soient des signes, qu'ils marquent les époques, les jours et les années,"
+    },
+    {
+      "v": 15,
+      "t": "et qu'ils servent de luminaires dans le firmament du ciel pour éclairer la terre. \" Et cela fut ainsi."
+    },
+    {
+      "v": 16,
+      "t": "Dieu fit les deux grands luminaires, le plus grand luminaire pour présider au jour, le plus petit luminaire pour présider à la nuit ; il fit aussi les étoiles."
+    },
+    {
+      "v": 17,
+      "t": "Dieu les plaça dans le firmament du ciel pour éclairer la terre,"
+    },
+    {
+      "v": 18,
+      "t": "pour présider au jour et à la nuit, et pour séparer la lumière et les ténèbres. Et Dieu vit que cela était bon."
+    },
+    {
+      "v": 19,
+      "t": "Et il y eut un soir, et il y eut un matin : ce fut le quatrième jour."
+    },
+    {
+      "v": 20,
+      "t": "Dieu dit : \" Que les eaux foisonnent d'une multitude d'êtres vivants, et que les oiseaux volent sur la terre, sur la face du firmament du ciel. \""
+    },
+    {
+      "v": 21,
+      "t": "Et Dieu créa les grands animaux aquatiques, et tout être vivant qui se meut, foisonnant dans les eaux, selon leur espèce, et tout volatile ailé selon son espèce. Et Dieu vit que cela était bon."
+    },
+    {
+      "v": 22,
+      "t": "Et Dieu les bénit, en disant : \" Soyez féconds et multipliez, et remplissez les eaux de la mer, et que les oiseaux multiplient sur la terre. \""
+    },
+    {
+      "v": 23,
+      "t": "Et il y eut un soir, et il y eut un matin : ce fut le cinquième jour."
+    },
+    {
+      "v": 24,
+      "t": "Dieu dit : \" Que la terre fasse sortir des êtres animés selon leur espèce, des animaux domestiques, des reptiles et des bêtes de la terre selon leur espèce. \" Et cela fut ainsi."
+    },
+    {
+      "v": 25,
+      "t": "Dieu fit les bêtes de la terre selon leur espèce, les animaux domestiques selon leur espèce, et tout ce qui rampe sur la terre selon son espèce. Et Dieu vit que cela était bon."
+    },
+    {
+      "v": 26,
+      "t": "Puis Dieu dit : \" Faisons l'homme à notre image, selon notre ressemblance, et qu'il domine sur les poissons de la mer, sur les oiseaux du ciel, sur les animaux domestiques et sur toute la terre, et sur les reptiles qui rampent sur la terre. \""
+    },
+    {
+      "v": 27,
+      "t": "Et Dieu créa l'homme à son image ; il le créa à l'image de Dieu : il les créa mâle et femelle."
+    },
+    {
+      "v": 28,
+      "t": "Et Dieu les bénit, et il leur dit : \" Soyez féconds, multipliez, remplissez la terre et soumettez-la, et dominez sur les poissons de la mer, sur les oiseaux du ciel et sur tout animal qui se meut sur la terre. \""
+    },
+    {
+      "v": 29,
+      "t": "Et Dieu dit : \" Voici que je vous donne toute herbe portant semence à la surface de toute la terre, et tout arbre qui porte un fruit d'arbre ayant semence ; ce sera pour votre nourriture."
+    },
+    {
+      "v": 30,
+      "t": "Et à tout animal de la terre, et à tout oiseau du ciel, et à tout ce qui se meut sur la terre, ayant en soi un souffle de vie, je donne toute herbe verte pour nourriture. \" Et cela fut ainsi."
+    },
+    {
+      "v": 31,
+      "t": "Et Dieu vit tout ce qu'il avait fait, et voici cela était très bon.   Et il y eut un soir, et il y eut un matin : ce fut le sixième jour."
+    }
+  ]
+}

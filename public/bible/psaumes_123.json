@@ -1,0 +1,22 @@
+{
+  "book": "Psaumes",
+  "chapter": 123,
+  "verses": [
+    {
+      "v": 1,
+      "t": "Cantique des montées.   J'élève mes yeux vers toi, ô toi qui siège dans les cieux !"
+    },
+    {
+      "v": 2,
+      "t": "Comme l'œil du serviteur est fixé sur la main de son maître, et l'œil de la servante sur la main de sa maîtresse, ainsi nos yeux sont fixés sur Yahweh, notre Dieu, jusqu'à ce qu'il ait pitié de nous."
+    },
+    {
+      "v": 3,
+      "t": "Aie pitié de nous, Yahweh, aie pitié de nous, car nous n'avons été que trop rassasiés d'opprobres."
+    },
+    {
+      "v": 4,
+      "t": "Notre âme n'a été que trop rassasiée de la moquerie des superbes, du mépris des orgueilleux."
+    }
+  ]
+}

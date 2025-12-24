@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import MemoriaFiche from "@/components/MemoriaFiche";
 import Header from "@/components/Header";
@@ -12,7 +12,22 @@ import { Badge } from "@/components/ui/badge";
 const ChapterPage = () => {
     const { chapterId } = useParams();
     const content = useQuery(api.memoria.getChapter, { chapterId: chapterId || "" });
+    const markAsMemorized = useMutation(api.progress.markAsMemorized);
     const [bibleText, setBibleText] = useState<{ verses: { v: number; t: string }[] } | null>(null);
+    const [isMarking, setIsMarking] = useState(false);
+
+    const handleMarkMemorized = async () => {
+        if (!chapterId) return;
+        setIsMarking(true);
+        try {
+            await markAsMemorized({ chapterId });
+            alert("Chapitre marqué comme mémorisé ! 🎉");
+        } catch (error) {
+            console.error("Error marking as memorized:", error);
+        } finally {
+            setIsMarking(false);
+        }
+    };
 
     useEffect(() => {
         if (chapterId) {
@@ -81,8 +96,12 @@ const ChapterPage = () => {
             </main>
 
             <footer className="fixed bottom-0 left-0 right-0 p-4 border-t bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm flex justify-center z-10">
-                <Button className="w-full max-w-sm bg-amber-600 hover:bg-amber-700 text-white font-bold">
-                    Marquer comme mémorisé
+                <Button
+                    onClick={handleMarkMemorized}
+                    disabled={isMarking}
+                    className="w-full max-w-sm bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                >
+                    {isMarking ? "Enregistrement..." : "Marquer comme mémorisé"}
                 </Button>
             </footer>
         </div>

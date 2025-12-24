@@ -14,6 +14,8 @@ import SignUpPage from "./pages/SignUp";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Chapter from "./pages/Chapter";
+import Bible from "./pages/Bible";
+import Verse from "./pages/Verse";
 import NotFound from "./pages/NotFound";
 
 // Initialize Convex
@@ -74,6 +76,32 @@ const App = () => (
                   <>
                     <SignedIn>
                       <Chapter />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/bible"
+                element={
+                  <>
+                    <SignedIn>
+                      <Bible />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/verse/:verseId"
+                element={
+                  <>
+                    <SignedIn>
+                      <Verse />
                     </SignedIn>
                     <SignedOut>
                       <RedirectToSignIn />
