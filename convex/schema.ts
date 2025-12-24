@@ -22,13 +22,13 @@ export default defineSchema({
     chapterId: v.string(), // Format: "book_chapter" (ex: "genesis_1")
     memorized: v.boolean(),
     lastReview: v.number(),
-    nextReview: v.number(), // Timestamp pour la répétition espacée
+    nextReview: v.number(), // Timestamp pour la repetition espacee
     reviewCount: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_next_review", ["userId", "nextReview"]),
 
-  // Contenu MEMORIA FIDEI (les fiches)
+  // Contenu MEMORIA FIDEI (les fiches de chapitres)
   memoriaContent: defineTable({
     chapterId: v.string(),
     book: v.string(),
@@ -36,11 +36,11 @@ export default defineSchema({
     title: v.string(),
     ideaCentrale: v.string(),
     contexteEssentiel: v.string(),
-    imageMentale: v.string(), // Description textuelle de l'image
-    typologie: v.string(), // Lecture AT -> NT
-    versetsCles: v.array(v.string()), // Références ou textes
+    imageMentale: v.string(),
+    typologie: v.string(),
+    versetsCles: v.array(v.string()),
     apologetique: v.object({
-      veriteAffirmee: v.string(), // Also standardized nested fields to satisfy strict ASCII requirements just in case
+      veriteAffirmee: v.string(),
       versetsAppui: v.array(v.string()),
       objection: v.string(),
       reponse: v.string(),
@@ -49,8 +49,41 @@ export default defineSchema({
     applicationSpirituelle: v.string(),
     resumeMemoirel: v.string(),
     astuceMemoire: v.string(),
-    periodeHistoireSalut: v.string(), // "Création", "Patriarches", etc.
-    familleTheologique: v.string(), // "Alliance", "Sacrements", etc.
+    periodeHistoireSalut: v.string(),
+    familleTheologique: v.string(),
   })
     .index("by_chapter", ["chapterId"]),
+
+  // Fiches MEMORIA FIDEI pour les VERSETS (generees par IA)
+  verseFiches: defineTable({
+    verseId: v.string(), // Format: "book_chapter_verse" (ex: "genese_12_1")
+    book: v.string(),
+    chapter: v.number(),
+    verse: v.number(),
+    verseText: v.string(),
+
+    // Metadata
+    periodeHistoireSalut: v.string(), // "Creation", "Patriarches", etc.
+    familleTheologique: v.string(), // "Alliance", "Sacrements", etc.
+
+    // 11 sections obligatoires
+    ideeCentrale: v.string(),
+    contexteEssentiel: v.string(),
+    imageMentale: v.string(),
+    typologieAT: v.string(),
+    typologieNT: v.string(),
+    versetsCles: v.array(v.string()),
+    apologetiqueVerite: v.string(),
+    apologetiqueVersetsAppui: v.array(v.string()),
+    apologetiqueObjection: v.string(),
+    apologetiqueReponse: v.string(),
+    placeHistoireSalut: v.string(),
+    applicationSpirituelle: v.string(),
+    resumeMemoriel: v.string(),
+    astuceMemoire: v.string(),
+
+    // Generation metadata
+    generatedAt: v.number(),
+  })
+    .index("by_verse", ["verseId"]),
 });

@@ -15,13 +15,15 @@ import {
     Heart,
     Brain,
     Sparkles,
+    Clock,
+    Key,
+    Quote,
+    RefreshCw,
+    Check,
+    AlertCircle,
 } from "lucide-react";
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion";
+import { useQuery, useAction } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 interface VerseData {
     book: string;
@@ -31,10 +33,19 @@ interface VerseData {
 }
 
 const VersePage = () => {
-    const { verseId } = useParams(); // Format: bookId_chapter_verse (e.g., luc_9_23)
+    const { verseId } = useParams();
     const [verseData, setVerseData] = useState<VerseData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [generating, setGenerating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
+    // Get saved fiche from database
+    const savedFiche = useQuery(api.verseFiches.getByVerseId, verseId ? { verseId } : "skip");
+
+    // AI generation action
+    const generateFiche = useAction(api.verseFiches.generateFiche);
+
+    // Load verse text from JSON
     useEffect(() => {
         if (!verseId) return;
 
@@ -44,11 +55,10 @@ const VersePage = () => {
             return;
         }
 
-        const bookId = parts.slice(0, -2).join("_"); // Handle book IDs like "1samuel"
+        const bookId = parts.slice(0, -2).join("_");
         const chapter = parseInt(parts[parts.length - 2]);
         const verse = parseInt(parts[parts.length - 1]);
 
-        // Fetch the chapter JSON
         fetch(`/bible/${bookId}_${chapter}.json`)
             .then((res) => res.json())
             .then((data) => {
@@ -63,10 +73,37 @@ const VersePage = () => {
                 }
                 setLoading(false);
             })
-            .catch(() => {
-                setLoading(false);
-            });
+            .catch(() => setLoading(false));
     }, [verseId]);
+
+    // Auto-generate on first visit if no saved fiche
+    useEffect(() => {
+        if (verseData && savedFiche === null && !generating && verseId) {
+            handleGenerate();
+        }
+    }, [verseData, savedFiche]);
+
+    const handleGenerate = async () => {
+        if (!verseData || !verseId) return;
+
+        setGenerating(true);
+        setError(null);
+
+        try {
+            await generateFiche({
+                verseId,
+                book: verseData.book,
+                chapter: verseData.chapter,
+                verse: verseData.verse,
+                verseText: verseData.text,
+            });
+        } catch (err: any) {
+            setError(err.message || "Erreur lors de la generation");
+            console.error("Generation error:", err);
+        } finally {
+            setGenerating(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -83,217 +120,313 @@ const VersePage = () => {
             <DashboardLayout>
                 <div className="text-center py-16">
                     <BookOpen className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-                    <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-300">
-                        Verset non trouvé
-                    </h2>
+                    <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-300">Verset non trouve</h2>
                     <Link to="/bible" className="mt-4 inline-block">
-                        <Button variant="outline">Retour à la Bible</Button>
+                        <Button variant="outline">Retour a la Bible</Button>
                     </Link>
                 </div>
             </DashboardLayout>
         );
     }
 
+    // Show loading state while generating
+    if (generating || savedFiche === undefined) {
+        return (
+            <DashboardLayout>
+                <div className="flex flex-col justify-center items-center min-h-[50vh] gap-4">
+                    <Loader2 className="w-12 h-12 animate-spin text-amber-600" />
+                    <p className="text-lg text-slate-600 dark:text-slate-400">
+                        Generation de la fiche MEMORIA FIDEI...
+                    </p>
+                    <p className="text-sm text-slate-500">
+                        L'IA analyse {verseData.book} {verseData.chapter}:{verseData.verse}
+                    </p>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    // Show error state
+    if (error && !savedFiche) {
+        return (
+            <DashboardLayout>
+                <div className="flex flex-col justify-center items-center min-h-[50vh] gap-4">
+                    <AlertCircle className="w-12 h-12 text-red-500" />
+                    <p className="text-lg text-slate-600 dark:text-slate-400">Erreur de generation</p>
+                    <p className="text-sm text-red-500 max-w-md text-center">{error}</p>
+                    <Button onClick={handleGenerate} className="mt-4 gap-2">
+                        <RefreshCw className="w-4 h-4" />
+                        Reessayer
+                    </Button>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    // No fiche yet and not generating
+    if (!savedFiche) {
+        return (
+            <DashboardLayout>
+                <div className="flex flex-col justify-center items-center min-h-[50vh] gap-4">
+                    <Sparkles className="w-12 h-12 text-amber-500" />
+                    <p className="text-lg text-slate-600 dark:text-slate-400">
+                        Pret a generer la fiche MEMORIA FIDEI
+                    </p>
+                    <Button onClick={handleGenerate} size="lg" className="mt-4 gap-2 bg-amber-600 hover:bg-amber-700">
+                        <Sparkles className="w-5 h-5" />
+                        Generer avec l'IA
+                    </Button>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    // Display the saved fiche
+    const fiche = savedFiche;
+
     return (
         <DashboardLayout>
-            {/* Header */}
+            {/* Navigation */}
             <div className="mb-6">
                 <Link to="/bible" className="inline-flex items-center gap-2 text-amber-600 hover:text-amber-700 mb-4">
                     <ChevronLeft className="w-4 h-4" />
-                    Retour à la Bible
+                    Retour a la Bible
                 </Link>
-                <div className="flex items-center gap-3 mb-2">
-                    <Badge className="bg-amber-600 text-white">{verseData.book} {verseData.chapter}:{verseData.verse}</Badge>
-                    <Badge variant="outline">Fiche Memoria Fidei</Badge>
-                </div>
-                <h1 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 dark:text-slate-50">
-                    Mémorise ce verset
+            </div>
+
+            {/* TITRE */}
+            <div className="mb-8">
+                <h1 className="text-3xl md:text-4xl font-serif font-bold text-slate-900 dark:text-slate-50 mb-3">
+                    {fiche.book} {fiche.chapter}:{fiche.verse}
                 </h1>
-            </div>
-
-            {/* Verse Card */}
-            <Card className="mb-8 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-800">
-                <CardContent className="p-6">
-                    <p className="text-xl md:text-2xl font-serif text-slate-800 dark:text-slate-100 leading-relaxed italic">
-                        "{verseData.text}"
-                    </p>
-                    <p className="text-right mt-4 text-amber-700 dark:text-amber-400 font-semibold">
-                        — {verseData.book} {verseData.chapter}:{verseData.verse}
-                    </p>
-                </CardContent>
-            </Card>
-
-            {/* Memoria Fidei Sections */}
-            <div className="space-y-6">
-                {/* 1. Idée Centrale */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Lightbulb className="w-5 h-5 text-amber-600" />
-                            Idée Centrale
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-slate-700 dark:text-slate-300">
-                            <strong>Question :</strong> Quel est le message principal que Dieu veut me transmettre à travers ce verset ?
+                <div className="flex flex-wrap gap-2 mb-4">
+                    <Badge className="bg-blue-600 text-white">Periode : {fiche.periodeHistoireSalut}</Badge>
+                    <Badge className="bg-purple-600 text-white">Famille : {fiche.familleTheologique}</Badge>
+                </div>
+                <Card className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200">
+                    <CardContent className="p-6">
+                        <blockquote className="text-xl md:text-2xl font-serif italic text-slate-700 dark:text-slate-200">
+                            "{fiche.verseText}"
+                        </blockquote>
+                        <p className="text-right mt-3 text-amber-700 dark:text-amber-400 font-semibold">
+                            — {fiche.book} {fiche.chapter}:{fiche.verse}
                         </p>
-                        <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border-l-4 border-amber-500">
-                            <p className="text-sm text-slate-600 dark:text-slate-400 italic">
-                                Réfléchis et formule en une phrase l'enseignement central de ce verset...
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* 2. Image Mentale */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <ImageIcon className="w-5 h-5 text-blue-600" />
-                            Image Mentale
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-slate-700 dark:text-slate-300">
-                            <strong>Visualise :</strong> Crée une image mentale forte pour ancrer ce verset dans ta mémoire.
-                        </p>
-                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                <p className="font-medium text-blue-700 dark:text-blue-400 mb-2">🎨 Scène</p>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                    Imagine un lieu, des personnages, une action...
-                                </p>
-                            </div>
-                            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                                <p className="font-medium text-purple-700 dark:text-purple-400 mb-2">🔗 Associations</p>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                    Lie cette image à des mots-clés du verset
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* 3. Lecture Typologique */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <ArrowRight className="w-5 h-5 text-green-600" />
-                            Lecture Typologique
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-slate-700 dark:text-slate-300 mb-4">
-                            <strong>AT → NT :</strong> Comment ce verset préfigure ou s'accomplit dans le Christ et son Église ?
-                        </p>
-                        <Accordion type="single" collapsible>
-                            <AccordionItem value="typologie">
-                                <AccordionTrigger className="text-sm">Voir les connexions typologiques</AccordionTrigger>
-                                <AccordionContent>
-                                    <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                                        <p>• Ce verset peut préfigurer un mystère du Christ (Incarnation, Passion, Résurrection...)</p>
-                                        <p>• Il peut aussi annoncer un sacrement de l'Église</p>
-                                        <p>• Ou encore prophétiser la vie de grâce des fidèles</p>
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                    </CardContent>
-                </Card>
-
-                {/* 4. Section Apologétique */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Shield className="w-5 h-5 text-red-600" />
-                            Apologétique
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-slate-700 dark:text-slate-300 mb-4">
-                            <strong>Défendre la foi :</strong> Quelle vérité catholique ce verset affirme-t-il face aux objections ?
-                        </p>
-                        <div className="space-y-4">
-                            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                                <p className="font-medium text-green-700 dark:text-green-400 mb-1">✓ Vérité affirmée</p>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                    Quelle doctrine catholique ce verset soutient-il ?
-                                </p>
-                            </div>
-                            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                                <p className="font-medium text-red-700 dark:text-red-400 mb-1">✗ Objection courante</p>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                    Comment certains interprètent-ils mal ce passage ?
-                                </p>
-                            </div>
-                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                <p className="font-medium text-blue-700 dark:text-blue-400 mb-1">↪ Réponse catholique</p>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                    Comment répondre avec charité et vérité ?
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* 5. Application Spirituelle */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Heart className="w-5 h-5 text-pink-600" />
-                            Application Spirituelle
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-slate-700 dark:text-slate-300 mb-4">
-                            <strong>Vie concrète :</strong> Comment ce verset peut-il transformer ma vie aujourd'hui ?
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="p-4 border rounded-lg">
-                                <p className="font-medium text-slate-700 dark:text-slate-300 mb-1">🙏 Prière</p>
-                                <p className="text-sm text-slate-500">Un point d'oraison</p>
-                            </div>
-                            <div className="p-4 border rounded-lg">
-                                <p className="font-medium text-slate-700 dark:text-slate-300 mb-1">🎯 Action</p>
-                                <p className="text-sm text-slate-500">Un geste concret</p>
-                            </div>
-                            <div className="p-4 border rounded-lg">
-                                <p className="font-medium text-slate-700 dark:text-slate-300 mb-1">💪 Vertu</p>
-                                <p className="text-sm text-slate-500">Une vertu à cultiver</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* 6. Astuce Mémoire */}
-                <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Brain className="w-5 h-5 text-purple-600" />
-                            Astuce Mémoire
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-slate-700 dark:text-slate-300 mb-4">
-                            <strong>Technique :</strong> Utilise cette astuce pour graver ce verset dans ta mémoire.
-                        </p>
-                        <div className="p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg">
-                            <p className="font-medium text-purple-700 dark:text-purple-400 mb-2">
-                                <Sparkles className="w-4 h-4 inline mr-1" />
-                                Méthode des premières lettres
-                            </p>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                                Prends la première lettre de chaque mot clé du verset pour former un acronyme mémorable.
-                            </p>
-                        </div>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Action Button */}
-            <div className="mt-8 flex justify-center">
-                <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-8">
-                    ✓ Marquer comme mémorisé
+            <div className="space-y-8">
+                {/* IDEE CENTRALE */}
+                <section>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <Lightbulb className="w-5 h-5 text-amber-600" />
+                        🎯 IDEE CENTRALE
+                    </h2>
+                    <Card className="border-l-4 border-amber-500">
+                        <CardContent className="p-4">
+                            <p className="text-lg text-slate-700 dark:text-slate-300 leading-relaxed">
+                                {fiche.ideeCentrale}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </section>
+
+                {/* CONTEXTE ESSENTIEL */}
+                <section>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <BookOpen className="w-5 h-5 text-blue-600" />
+                        🧠 CONTEXTE ESSENTIEL
+                    </h2>
+                    <Card>
+                        <CardContent className="p-4">
+                            <p className="text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+                                {fiche.contexteEssentiel}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </section>
+
+                {/* IMAGE MENTALE */}
+                <section>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <ImageIcon className="w-5 h-5 text-green-600" />
+                        🖼️ IMAGE MENTALE MAITRESSE
+                    </h2>
+                    <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+                        <CardContent className="p-6">
+                            <p className="text-slate-700 dark:text-slate-300 whitespace-pre-line italic leading-relaxed">
+                                {fiche.imageMentale}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </section>
+
+                {/* TYPOLOGIE */}
+                <section>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <ArrowRight className="w-5 h-5 text-indigo-600" />
+                        ✝️ LECTURE TYPOLOGIQUE (AT → NT)
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card className="border-t-4 border-slate-400">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base text-slate-600 dark:text-slate-400">📜 Ancien Testament</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-slate-700 dark:text-slate-300 whitespace-pre-line">{fiche.typologieAT}</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-t-4 border-amber-500">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-base text-amber-600 dark:text-amber-400">✝️ Accomplissement</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-slate-700 dark:text-slate-300 whitespace-pre-line">{fiche.typologieNT}</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </section>
+
+                {/* VERSETS CLES */}
+                <section>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <Key className="w-5 h-5 text-yellow-600" />
+                        🔑 VERSETS CLES A MEMORISER
+                    </h2>
+                    <div className="space-y-3">
+                        {fiche.versetsCles.map((v: string, i: number) => (
+                            <Card key={i} className="border-l-4 border-yellow-500">
+                                <CardContent className="p-4 flex gap-3">
+                                    <Quote className="w-5 h-5 text-yellow-600 shrink-0 mt-1" />
+                                    <p className="text-slate-700 dark:text-slate-300 italic">{v}</p>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </section>
+
+                {/* APOLOGETIQUE */}
+                <section>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <Shield className="w-5 h-5 text-red-600" />
+                        🛡️ SECTION APOLOGETIQUE
+                    </h2>
+                    <div className="space-y-4">
+                        <Card className="border-l-4 border-green-500">
+                            <CardContent className="p-4">
+                                <p className="font-semibold text-green-700 dark:text-green-400 mb-1">🧩 Verite catholique affirmee</p>
+                                <p className="text-slate-700 dark:text-slate-300">{fiche.apologetiqueVerite}</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-l-4 border-blue-500">
+                            <CardContent className="p-4">
+                                <p className="font-semibold text-blue-700 dark:text-blue-400 mb-2">📌 Versets d'appui</p>
+                                <ul className="list-disc list-inside text-slate-700 dark:text-slate-300">
+                                    {fiche.apologetiqueVersetsAppui.map((v: string, i: number) => (
+                                        <li key={i}>{v}</li>
+                                    ))}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-l-4 border-red-500">
+                            <CardContent className="p-4">
+                                <p className="font-semibold text-red-700 dark:text-red-400 mb-1">❓ Objection frequente</p>
+                                <p className="text-slate-700 dark:text-slate-300">{fiche.apologetiqueObjection}</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-l-4 border-emerald-500">
+                            <CardContent className="p-4">
+                                <p className="font-semibold text-emerald-700 dark:text-emerald-400 mb-1">✅ Reponse biblique catholique</p>
+                                <p className="text-slate-700 dark:text-slate-300">{fiche.apologetiqueReponse}</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </section>
+
+                {/* PLACE DANS L'HISTOIRE */}
+                <section>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-purple-600" />
+                        🕰️ PLACE DANS L'HISTOIRE DU SALUT
+                    </h2>
+                    <Card>
+                        <CardContent className="p-4">
+                            <p className="text-slate-700 dark:text-slate-300 whitespace-pre-line">
+                                {fiche.placeHistoireSalut}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </section>
+
+                {/* APPLICATION SPIRITUELLE */}
+                <section>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <Heart className="w-5 h-5 text-pink-600" />
+                        🙏 APPLICATION SPIRITUELLE
+                    </h2>
+                    <Card className="bg-pink-50 dark:bg-pink-900/20 border-pink-200">
+                        <CardContent className="p-4">
+                            <p className="text-lg text-slate-700 dark:text-slate-300 italic">
+                                {fiche.applicationSpirituelle}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </section>
+
+                {/* RESUME MEMORIEL */}
+                <section>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-amber-600" />
+                        🧩 RESUME MEMORIEL
+                    </h2>
+                    <Card className="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 border-2 border-amber-300">
+                        <CardContent className="p-6 text-center">
+                            <p className="text-2xl font-bold text-amber-800 dark:text-amber-300">
+                                {fiche.resumeMemoriel}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </section>
+
+                {/* ASTUCE MEMOIRE */}
+                <section>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
+                        <Brain className="w-5 h-5 text-purple-600" />
+                        🧠 ASTUCE MEMOIRE
+                    </h2>
+                    <Card className="bg-purple-50 dark:bg-purple-900/20">
+                        <CardContent className="p-6">
+                            <p className="text-slate-700 dark:text-slate-300 mb-2">
+                                Quand tu penses a {fiche.book} {fiche.chapter}:{fiche.verse}, dis :
+                            </p>
+                            <p className="text-2xl font-bold text-purple-700 dark:text-purple-400 italic">
+                                « {fiche.astuceMemoire} »
+                            </p>
+                            <p className="mt-3 text-sm text-slate-500">👉 Le verset revient immediatement.</p>
+                        </CardContent>
+                    </Card>
+                </section>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+                <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-8 gap-2">
+                    <Check className="w-5 h-5" />
+                    Marquer comme memorise
+                </Button>
+                <Button
+                    size="lg"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={handleGenerate}
+                    disabled={generating}
+                >
+                    {generating ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                        <RefreshCw className="w-5 h-5" />
+                    )}
+                    {generating ? "Regeneration..." : "Regenerer"}
                 </Button>
             </div>
         </DashboardLayout>

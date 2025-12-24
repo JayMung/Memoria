@@ -12,6 +12,7 @@ import type * as memoria from "../memoria.js";
 import type * as progress from "../progress.js";
 import type * as seed_data from "../seed_data.js";
 import type * as users from "../users.js";
+import type * as verseFiches from "../verseFiches.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   progress: typeof progress;
   seed_data: typeof seed_data;
   users: typeof users;
+  verseFiches: typeof verseFiches;
 }>;
 
 /**
