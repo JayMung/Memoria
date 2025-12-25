@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,14 @@ import {
     Clock,
     Key,
     Quote,
-    RefreshCw,
     Check,
     AlertCircle,
+    CheckCircle2,
+    Star,
 } from "lucide-react";
-import { useQuery, useAction } from "convex/react";
+import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useUser } from "@clerk/clerk-react";
 
 interface VerseData {
     book: string;
@@ -34,16 +36,57 @@ interface VerseData {
 
 const VersePage = () => {
     const { verseId } = useParams();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [verseData, setVerseData] = useState<VerseData | null>(null);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [markedAsRead, setMarkedAsRead] = useState(false);
+    const [memorizing, setMemorizing] = useState(false);
+    const [justMemorized, setJustMemorized] = useState(false);
+    const [memorizeError, setMemorizeError] = useState<string | null>(null);
+
+    // Check authentication
+    const { isSignedIn } = useUser();
+
+    // Get source params for smart navigation
+    const source = searchParams.get("source"); // "parcours" or null
+    const parcoursSlug = searchParams.get("parcours");
+    const etapeId = searchParams.get("etape");
 
     // Get saved fiche from database
     const savedFiche = useQuery(api.verseFiches.getByVerseId, verseId ? { verseId } : "skip");
 
+    // Get all memorized chapters to check if this one is already memorized
+    const allMemorized = useQuery(api.progress.getAllMemorized);
+
+    // Check if current chapter is already memorized
+    const currentChapterId = verseId ? (() => {
+        const parts = verseId.split("_");
+        if (parts.length < 3) return null;
+        const bookId = parts.slice(0, -2).join("_");
+        const chapter = parts[parts.length - 2];
+        return `${bookId}_${chapter}`;
+    })() : null;
+
+    const isAlreadyMemorized = allMemorized?.some(
+        (m: any) => m.chapterId === currentChapterId
+    ) || false;
+
     // AI generation action
     const generateFiche = useAction(api.verseFiches.generateFiche);
+
+    // Memorization mutation
+    const markAsMemorized = useMutation(api.progress.markAsMemorized);
+
+    // Debug Auth
+    const authDebug = useQuery(api.debug.debugAuth);
+    useEffect(() => {
+        if (authDebug) {
+            console.log("Convex Auth Debug:", authDebug);
+        }
+    }, [authDebug]);
 
     // Load verse text from JSON
     useEffect(() => {
@@ -105,6 +148,66 @@ const VersePage = () => {
         }
     };
 
+    const handleMarkAsRead = () => {
+        setMarkedAsRead(true);
+        // TODO: Save to database for progress tracking
+        // For now, just show success and navigate back
+        setTimeout(() => {
+            handleBack();
+        }, 500);
+    };
+
+    // Get chapter ID for memorization
+    const getChapterId = () => {
+        if (!verseId) return null;
+        const parts = verseId.split("_");
+        if (parts.length < 3) return null;
+        const bookId = parts.slice(0, -2).join("_");
+        const chapter = parts[parts.length - 2];
+        return `${bookId}_${chapter}`;
+    };
+
+    const handleMemorize = async () => {
+        const chapterId = getChapterId();
+        if (!chapterId) return;
+
+        if (!isSignedIn) {
+            setMemorizeError("Veuillez vous connecter pour mémoriser des chapitres");
+            return;
+        }
+
+        setMemorizing(true);
+        setMemorizeError(null);
+        try {
+            await markAsMemorized({ chapterId });
+            setJustMemorized(true);
+        } catch (err: any) {
+            console.error("Error memorizing:", err);
+            if (err.message?.includes("Not authenticated")) {
+                setMemorizeError("Veuillez vous connecter pour mémoriser des chapitres");
+            } else {
+                setMemorizeError("Erreur lors de la mémorisation. Réessayez.");
+            }
+        } finally {
+            setMemorizing(false);
+        }
+    };
+
+    const handleBack = () => {
+        if (source === "parcours" && parcoursSlug) {
+            navigate(`/parcours`);
+        } else {
+            navigate(-1);
+        }
+    };
+
+    const getBackLabel = () => {
+        if (source === "parcours") {
+            return "Retour au parcours";
+        }
+        return "Retour";
+    };
+
     if (loading) {
         return (
             <DashboardLayout>
@@ -121,9 +224,9 @@ const VersePage = () => {
                 <div className="text-center py-16">
                     <BookOpen className="w-16 h-16 mx-auto mb-4 text-slate-300" />
                     <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-300">Verset non trouve</h2>
-                    <Link to="/bible" className="mt-4 inline-block">
-                        <Button variant="outline">Retour a la Bible</Button>
-                    </Link>
+                    <Button variant="outline" onClick={() => navigate("/bible")} className="mt-4">
+                        Retour a la Bible
+                    </Button>
                 </div>
             </DashboardLayout>
         );
@@ -155,7 +258,6 @@ const VersePage = () => {
                     <p className="text-lg text-slate-600 dark:text-slate-400">Erreur de generation</p>
                     <p className="text-sm text-red-500 max-w-md text-center">{error}</p>
                     <Button onClick={handleGenerate} className="mt-4 gap-2">
-                        <RefreshCw className="w-4 h-4" />
                         Reessayer
                     </Button>
                 </div>
@@ -163,18 +265,38 @@ const VersePage = () => {
         );
     }
 
-    // No fiche yet and not generating
+    // No fiche yet - show simple verse display
     if (!savedFiche) {
         return (
             <DashboardLayout>
-                <div className="flex flex-col justify-center items-center min-h-[50vh] gap-4">
-                    <Sparkles className="w-12 h-12 text-amber-500" />
-                    <p className="text-lg text-slate-600 dark:text-slate-400">
-                        Pret a generer la fiche MEMORIA FIDEI
-                    </p>
-                    <Button onClick={handleGenerate} size="lg" className="mt-4 gap-2 bg-amber-600 hover:bg-amber-700">
-                        <Sparkles className="w-5 h-5" />
-                        Generer avec l'IA
+                {/* Navigation */}
+                <div className="flex items-center gap-3 mb-6">
+                    <Button variant="ghost" size="icon" onClick={handleBack}>
+                        <ChevronLeft className="w-6 h-6" />
+                    </Button>
+                    <span className="text-slate-600 dark:text-slate-400">{getBackLabel()}</span>
+                </div>
+
+                {/* Simple verse display */}
+                <Card className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 mb-6">
+                    <CardContent className="p-6">
+                        <h1 className="text-2xl font-serif font-bold text-slate-900 dark:text-slate-50 mb-4">
+                            {verseData.book} {verseData.chapter}:{verseData.verse}
+                        </h1>
+                        <blockquote className="text-xl font-serif italic text-slate-700 dark:text-slate-200">
+                            "{verseData.text}"
+                        </blockquote>
+                    </CardContent>
+                </Card>
+
+                <div className="flex justify-center">
+                    <Button
+                        size="lg"
+                        className="bg-green-600 hover:bg-green-700 text-white font-bold px-8 gap-2"
+                        onClick={handleMarkAsRead}
+                    >
+                        <Check className="w-5 h-5" />
+                        Marquer comme lu
                     </Button>
                 </div>
             </DashboardLayout>
@@ -187,11 +309,17 @@ const VersePage = () => {
     return (
         <DashboardLayout>
             {/* Navigation */}
-            <div className="mb-6">
-                <Link to="/bible" className="inline-flex items-center gap-2 text-amber-600 hover:text-amber-700 mb-4">
-                    <ChevronLeft className="w-4 h-4" />
-                    Retour a la Bible
-                </Link>
+            <div className="flex items-center gap-3 mb-6">
+                <Button variant="ghost" size="icon" onClick={handleBack}>
+                    <ChevronLeft className="w-6 h-6" />
+                </Button>
+                <span className="text-slate-600 dark:text-slate-400">{getBackLabel()}</span>
+                {markedAsRead && (
+                    <Badge className="bg-green-600 text-white gap-1 ml-auto">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Lu
+                    </Badge>
+                )}
             </div>
 
             {/* TITRE */}
@@ -408,26 +536,103 @@ const VersePage = () => {
                 </section>
             </div>
 
-            {/* Actions */}
-            <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-                <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-8 gap-2">
-                    <Check className="w-5 h-5" />
-                    Marquer comme memorise
-                </Button>
-                <Button
-                    size="lg"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={handleGenerate}
-                    disabled={generating}
-                >
-                    {generating ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
+            {/* Actions - Memorize and Mark as Read */}
+            <div className="mt-10 space-y-4">
+                {/* Memorization Card */}
+                <Card className={`${justMemorized || isAlreadyMemorized ? 'bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 border-amber-400' : 'bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200'}`}>
+                    <CardContent className="p-6 text-center">
+                        {justMemorized ? (
+                            <>
+                                <Star className="w-12 h-12 mx-auto mb-3 text-amber-500 fill-amber-500" />
+                                <h3 className="text-xl font-bold text-amber-800 dark:text-amber-300 mb-2">
+                                    Chapitre mémorisé ! 🎉
+                                </h3>
+                                <p className="text-sm text-amber-700 dark:text-amber-400">
+                                    Ce chapitre a été ajouté à ta liste de révisions.
+                                    Reviens demain pour consolider ta mémoire !
+                                </p>
+                            </>
+                        ) : isAlreadyMemorized ? (
+                            <>
+                                <Star className="w-12 h-12 mx-auto mb-3 text-amber-500 fill-amber-500" />
+                                <h3 className="text-xl font-bold text-amber-800 dark:text-amber-300 mb-2">
+                                    ✅ Déjà mémorisé !
+                                </h3>
+                                <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
+                                    Ce chapitre fait partie de ton système de révision.
+                                </p>
+                                <Button
+                                    variant="outline"
+                                    className="border-amber-400 text-amber-700 hover:bg-amber-50"
+                                    onClick={() => navigate("/memoire")}
+                                >
+                                    Voir mes révisions
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <Brain className="w-10 h-10 mx-auto mb-3 text-purple-600" />
+                                <h3 className="text-lg font-bold text-purple-800 dark:text-purple-300 mb-2">
+                                    Mémoriser ce chapitre ?
+                                </h3>
+                                <p className="text-sm text-purple-600 dark:text-purple-400 mb-4">
+                                    Active la répétition espacée pour ancrer {verseData?.book} {verseData?.chapter} dans ta mémoire à long terme.
+                                </p>
+                                {memorizeError && (
+                                    <div className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-4 py-2 rounded-lg mb-4 text-sm">
+                                        ⚠️ {memorizeError}
+                                        {!isSignedIn && (
+                                            <Button
+                                                variant="link"
+                                                className="text-red-700 dark:text-red-400 underline ml-2 p-0 h-auto"
+                                                onClick={() => navigate("/sign-in")}
+                                            >
+                                                Se connecter
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
+                                <Button
+                                    size="lg"
+                                    onClick={handleMemorize}
+                                    disabled={memorizing}
+                                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold px-8 gap-2"
+                                >
+                                    {memorizing ? (
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                    ) : (
+                                        <Star className="w-5 h-5" />
+                                    )}
+                                    {memorizing ? "Mémorisation..." : "Mémoriser ce chapitre"}
+                                </Button>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Mark as Read Button */}
+                <div className="flex justify-center">
+                    {markedAsRead ? (
+                        <Button
+                            size="lg"
+                            className="bg-green-600 hover:bg-green-700 text-white font-bold px-8 gap-2"
+                            disabled
+                        >
+                            <CheckCircle2 className="w-5 h-5" />
+                            Lu ✓
+                        </Button>
                     ) : (
-                        <RefreshCw className="w-5 h-5" />
+                        <Button
+                            size="lg"
+                            variant="outline"
+                            className="border-green-300 text-green-700 hover:bg-green-50 font-bold px-8 gap-2"
+                            onClick={handleMarkAsRead}
+                        >
+                            <Check className="w-5 h-5" />
+                            Marquer comme lu
+                        </Button>
                     )}
-                    {generating ? "Regeneration..." : "Regenerer"}
-                </Button>
+                </div>
             </div>
         </DashboardLayout>
     );

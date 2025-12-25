@@ -8,7 +8,13 @@
  * @module
  */
 
+import type * as aiSearch from "../aiSearch.js";
+import type * as apologetique from "../apologetique.js";
+import type * as apologetiqueCours from "../apologetiqueCours.js";
+import type * as debug from "../debug.js";
 import type * as memoria from "../memoria.js";
+import type * as parcours from "../parcours.js";
+import type * as priere from "../priere.js";
 import type * as progress from "../progress.js";
 import type * as seed_data from "../seed_data.js";
 import type * as users from "../users.js";
@@ -21,7 +27,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiSearch: typeof aiSearch;
+  apologetique: typeof apologetique;
+  apologetiqueCours: typeof apologetiqueCours;
+  debug: typeof debug;
   memoria: typeof memoria;
+  parcours: typeof parcours;
+  priere: typeof priere;
   progress: typeof progress;
   seed_data: typeof seed_data;
   users: typeof users;

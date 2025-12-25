@@ -53,17 +53,42 @@ export const markAsMemorized = mutation({
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            throw new Error("Not authenticated");
+        console.log("Convex Auth Identity:", identity ? "Found" : "Null");
+        if (identity) {
+            console.log("Identity Details:", {
+                issuer: identity.issuer,
+                email: identity.email,
+                subject: identity.subject
+            });
         }
 
-        const user = await ctx.db
+        // Get email or use subject as fallback
+        const userEmail = identity.email || `${identity.subject}@clerk.user`;
+        const userName = identity.name || identity.email?.split("@")[0] || identity.subject || "User";
+
+        let user = await ctx.db
             .query("users")
-            .withIndex("by_email", (q) => q.eq("email", identity.email!))
+            .withIndex("by_email", (q) => q.eq("email", userEmail))
             .first();
 
+        // Auto-create user if not found
         if (!user) {
-            throw new Error("User not found");
+            const userId = await ctx.db.insert("users", {
+                email: userEmail,
+                name: userName,
+                createdAt: Date.now(),
+                level: 1,
+                preferences: {
+                    rhythm: "moyen",
+                    goal: "approfondir",
+                    darkMode: false,
+                },
+            });
+            user = await ctx.db.get(userId);
+        }
+
+        if (!user) {
+            throw new Error("Could not create user");
         }
 
         // Check if progress exists
@@ -204,5 +229,46 @@ export const recordReview = mutation({
         }
 
         return "Review recorded!";
+    },
+});
+
+// Get all memorized chapters for display
+export const getAllMemorized = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            return [];
+        }
+
+        const userEmail = identity.email || `${identity.subject}@clerk.user`;
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", userEmail))
+            .first();
+
+        if (!user) {
+            return [];
+        }
+
+        const allProgress = await ctx.db
+            .query("progress")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .filter((q) => q.eq(q.field("memorized"), true))
+            .collect();
+
+        // Return with chapter info parsed from chapterId
+        return allProgress.map(p => {
+            const parts = p.chapterId.split("_");
+            const chapter = parts.pop();
+            const bookId = parts.join("_");
+            return {
+                ...p,
+                bookId,
+                chapterNum: chapter,
+                displayName: `${bookId.charAt(0).toUpperCase() + bookId.slice(1)} ${chapter}`,
+            };
+        });
     },
 });

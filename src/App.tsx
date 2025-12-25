@@ -16,6 +16,15 @@ import Dashboard from "./pages/Dashboard";
 import Chapter from "./pages/Chapter";
 import Bible from "./pages/Bible";
 import Verse from "./pages/Verse";
+import Parcours from "./pages/Parcours";
+import Memoire from "./pages/Memoire";
+import Apologetique from "./pages/Apologetique";
+import ApologetiqueCours from "./pages/ApologetiqueCours";
+import Priere from "./pages/Priere";
+import Rosaire from "./pages/Rosaire";
+import PrieresTraditionnelles from "./pages/PrieresTraditionnelles";
+import ExamenConscience from "./pages/ExamenConscience";
+import LectioDivina from "./pages/LectioDivina";
 import NotFound from "./pages/NotFound";
 
 // Initialize Convex
@@ -102,6 +111,123 @@ const App = () => (
                   <>
                     <SignedIn>
                       <Verse />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/parcours"
+                element={
+                  <>
+                    <SignedIn>
+                      <Parcours />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/memoire"
+                element={
+                  <>
+                    <SignedIn>
+                      <Memoire />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/apologetique"
+                element={
+                  <>
+                    <SignedIn>
+                      <Apologetique />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/apologetique/cours"
+                element={
+                  <>
+                    <SignedIn>
+                      <ApologetiqueCours />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/priere"
+                element={
+                  <>
+                    <SignedIn>
+                      <Priere />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/priere/rosaire"
+                element={
+                  <>
+                    <SignedIn>
+                      <Rosaire />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/priere/traditionnelles"
+                element={
+                  <>
+                    <SignedIn>
+                      <PrieresTraditionnelles />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/priere/examen"
+                element={
+                  <>
+                    <SignedIn>
+                      <ExamenConscience />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/priere/lectio"
+                element={
+                  <>
+                    <SignedIn>
+                      <LectioDivina />
                     </SignedIn>
                     <SignedOut>
                       <RedirectToSignIn />
