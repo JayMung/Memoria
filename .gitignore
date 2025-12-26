@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Project specific
+temp_bible/
+convex/_generated/
+

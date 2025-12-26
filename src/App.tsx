@@ -18,6 +18,8 @@ import Bible from "./pages/Bible";
 import Verse from "./pages/Verse";
 import Parcours from "./pages/Parcours";
 import Memoire from "./pages/Memoire";
+import ReadingSession from "./pages/ReadingSession";
+import NotesPage from "./pages/Notes";
 import Apologetique from "./pages/Apologetique";
 import ApologetiqueCours from "./pages/ApologetiqueCours";
 import Priere from "./pages/Priere";
@@ -26,6 +28,7 @@ import PrieresTraditionnelles from "./pages/PrieresTraditionnelles";
 import ExamenConscience from "./pages/ExamenConscience";
 import LectioDivina from "./pages/LectioDivina";
 import NotFound from "./pages/NotFound";
+import Profil from "./pages/Profil";
 
 // Initialize Convex
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
@@ -145,6 +148,32 @@ const App = () => (
                 }
               />
               <Route
+                path="/lecture/:bookId/:chapterRange"
+                element={
+                  <>
+                    <SignedIn>
+                      <ReadingSession />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/notes"
+                element={
+                  <>
+                    <SignedIn>
+                      <NotesPage />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
                 path="/apologetique"
                 element={
                   <>
@@ -228,6 +257,32 @@ const App = () => (
                   <>
                     <SignedIn>
                       <LectioDivina />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/notes"
+                element={
+                  <>
+                    <SignedIn>
+                      <NotesPage />
+                    </SignedIn>
+                    <SignedOut>
+                      <RedirectToSignIn />
+                    </SignedOut>
+                  </>
+                }
+              />
+              <Route
+                path="/profil"
+                element={
+                  <>
+                    <SignedIn>
+                      <Profil />
                     </SignedIn>
                     <SignedOut>
                       <RedirectToSignIn />

@@ -116,10 +116,8 @@ export const getExamenHistory = query({
 
 export const saveExamen = mutation({
     args: {
-        graces: v.optional(v.string()),
-        lumieres: v.optional(v.string()),
-        peches: v.optional(v.string()),
-        resolution: v.optional(v.string()),
+        pechesIds: v.array(v.string()),
+        generatedPrayer: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -135,16 +133,16 @@ export const saveExamen = mutation({
         await ctx.db.insert("prayerSessions", {
             userId: user._id,
             type: "examen",
+            details: JSON.stringify({ pechesCount: args.pechesIds.length }),
             completedAt: Date.now(),
         });
 
         return await ctx.db.insert("examenConscience", {
             userId: user._id,
             date: Date.now(),
-            graces: args.graces,
-            lumieres: args.lumieres,
-            peches: args.peches,
-            resolution: args.resolution,
+            pechesIds: args.pechesIds,
+            generatedPrayer: args.generatedPrayer,
+            completed: true,
         });
     },
 });

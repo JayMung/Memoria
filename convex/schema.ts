@@ -47,6 +47,7 @@ export default defineSchema({
     astuceMemoire: v.string(),
     periodeHistoireSalut: v.string(),
     familleTheologique: v.string(),
+    content: v.optional(v.string()), // Added for full text reading
   }).index("by_chapter", ["chapterId"]),
 
   verseFiches: defineTable({
@@ -181,6 +182,15 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_type", ["userId", "type"]),
 
+  // Versets lus (marqués comme lus sans être mémorisés)
+  readVerses: defineTable({
+    userId: v.id("users"),
+    verseId: v.string(), // ex: "genese_1_1"
+    readAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_verse", ["userId", "verseId"]),
+
   // ========== MODULE PRIÈRE ==========
 
   // Prières traditionnelles
@@ -219,14 +229,13 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_type", ["userId", "type"]),
 
-  // Examen de conscience
+  // Examen de conscience (Confession prep)
   examenConscience: defineTable({
     userId: v.id("users"),
     date: v.number(),
-    graces: v.optional(v.string()), // Ce pour quoi on remercie
-    lumieres: v.optional(v.string()), // Ce qu'on a découvert
-    peches: v.optional(v.string()), // Ce qu'on regrette
-    resolution: v.optional(v.string()), // Résolution pour demain
+    pechesIds: v.array(v.string()), // Liste des IDs de péchés cochés (ex: ["1_1", "5_3"])
+    generatedPrayer: v.optional(v.string()), // Prière de confession générée par IA
+    completed: v.boolean(),
   })
     .index("by_user", ["userId"])
     .index("by_user_date", ["userId", "date"]),
@@ -244,4 +253,40 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_date", ["userId", "date"]),
+  // Bible in a Year Reading Plan
+  readingPlan: defineTable({
+    day: v.number(), // 1-365
+    period: v.string(), // e.g. "Early World"
+    readings: v.array(
+      v.object({
+        book: v.string(),
+        chapter: v.string(), // String to handle "12-13" or "Intro"
+        type: v.string(), // "narrative", "supplemental", "prayer" (Psalms/Proverbs)
+      })
+    ),
+  }).index("by_day", ["day"]),
+
+  // User progress for Bible in a Year
+  userReadingProgress: defineTable({
+    userId: v.string(),
+    dayCompleted: v.number(), // The highest day fully completed (optional logic)
+    // We track individual readings to allow partial progress
+    completedReadings: v.array(v.string()), // Format: "day-N-index-M" to be specific
+  })
+    .index("by_user", ["userId"]),
+
+  // Surlignages et Notes (Immersive Reading)
+  userHighlights: defineTable({
+    userId: v.id("users"),
+    chapterId: v.string(), // "genese_1"
+    verseIndex: v.number(), // 1
+    color: v.optional(v.string()), // "yellow", "green", "blue", "red", "purple"
+    tags: v.optional(v.array(v.string())),
+    note: v.optional(v.string()), // Note personnelle
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_chapter", ["userId", "chapterId"])
+    .index("by_user_verse", ["userId", "chapterId", "verseIndex"])
+    .index("by_user", ["userId"]),
 });

@@ -1,272 +1,327 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import {
     ChevronLeft,
     ChevronRight,
-    Heart,
-    Lightbulb,
-    AlertCircle,
-    Target,
     Check,
     RotateCcw,
+    Sparkles,
+    ScrollText,
+    Printer,
+    ArrowRight
 } from "lucide-react";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
-
-type ExamenStep = "intro" | "graces" | "lumieres" | "peches" | "resolution" | "complete";
-
-const STEPS: { id: ExamenStep; title: string; icon: any; description: string; question: string }[] = [
-    {
-        id: "graces",
-        title: "Action de grâce",
-        icon: Heart,
-        description: "Remercier Dieu pour les grâces reçues",
-        question: "Pour quoi puis-je remercier Dieu aujourd'hui ? Quelles grâces ai-je reçues ?",
-    },
-    {
-        id: "lumieres",
-        title: "Demande de lumière",
-        icon: Lightbulb,
-        description: "Voir sa journée avec les yeux de Dieu",
-        question: "En revoyant ma journée, qu'est-ce que l'Esprit Saint me montre ? Quels moments ont été significatifs ?",
-    },
-    {
-        id: "peches",
-        title: "Examen des actes",
-        icon: AlertCircle,
-        description: "Reconnaître ses manquements",
-        question: "En quoi ai-je manqué d'amour envers Dieu, envers les autres, envers moi-même ? Quels péchés ai-je commis en pensée, parole, action, omission ?",
-    },
-    {
-        id: "resolution",
-        title: "Résolution",
-        icon: Target,
-        description: "S'engager pour demain",
-        question: "Quelle résolution concrète puis-je prendre pour demain ? Comment puis-je mieux aimer ?",
-    },
-];
+import { commandements, priereEspritSaint, acteContrition } from "@/data/commandements";
 
 const ExamenConsciencePage = () => {
     const navigate = useNavigate();
-    const [currentStepIndex, setCurrentStepIndex] = useState(-1); // -1 = intro
-    const [responses, setResponses] = useState<Record<string, string>>({
-        graces: "",
-        lumieres: "",
-        peches: "",
-        resolution: "",
-    });
+    const [step, setStep] = useState(0); // 0=Intro, 1-10=Commandements, 11=Summary, 12=Generating, 13=Final
+    const [selectedPeches, setSelectedPeches] = useState<Set<string>>(new Set());
+    const [generatedPrayer, setGeneratedPrayer] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
+    // Mutations & Actions
     const saveExamen = useMutation(api.priere.saveExamen);
+    const generatePrayerAction = useAction(api.aiPriere.generateConfessionPrayer);
 
-    const currentStep = currentStepIndex >= 0 ? STEPS[currentStepIndex] : null;
-    const progressPercent = ((currentStepIndex + 1) / STEPS.length) * 100;
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-    const handleNext = async () => {
-        if (currentStepIndex < STEPS.length - 1) {
-            setCurrentStepIndex(currentStepIndex + 1);
-        } else {
-            // Complete
-            await saveExamen({
-                graces: responses.graces || undefined,
-                lumieres: responses.lumieres || undefined,
-                peches: responses.peches || undefined,
-                resolution: responses.resolution || undefined,
-            });
-            setCurrentStepIndex(STEPS.length); // Complete state
+    // Scroll to top on step change
+    useEffect(() => {
+        if (scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTop = 0;
         }
+    }, [step]);
+
+    const handleTogglePeche = (id: string) => {
+        const newSelected = new Set(selectedPeches);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedPeches(newSelected);
+    };
+
+    const handleNext = () => {
+        setStep(prev => prev + 1);
     };
 
     const handlePrev = () => {
-        if (currentStepIndex > -1) {
-            setCurrentStepIndex(currentStepIndex - 1);
+        setStep(prev => Math.max(0, prev - 1));
+    };
+
+    const handleGeneratePrayer = async () => {
+        setStep(12); // Loading state
+        setIsGenerating(true);
+
+        try {
+            // Get text of selected sins
+            const pechesList = Array.from(selectedPeches).map(id => {
+                // Find sin text
+                for (const cmd of commandements) {
+                    const peche = cmd.peches.find(p => p.id === id);
+                    if (peche) return peche.text;
+                }
+                return "";
+            }).filter(Boolean);
+
+            const result = await generatePrayerAction({ peches: pechesList });
+
+            if (result.success && result.prayer) {
+                setGeneratedPrayer(result.prayer);
+                setStep(13); // Final step
+
+                // Save to DB immediately
+                await saveExamen({
+                    pechesIds: Array.from(selectedPeches),
+                    generatedPrayer: result.prayer
+                });
+            } else {
+                // Fallback if error
+                console.error("AI Error:", result.error);
+                setGeneratedPrayer("Seigneur, je te demande pardon pour tous mes péchés. Aide-moi à m'amender et à vivre selon ton amour.");
+                setStep(13);
+            }
+        } catch (error) {
+            console.error("Generation error:", error);
+            setStep(13);
+        } finally {
+            setIsGenerating(false);
         }
     };
 
-    const handleReset = () => {
-        setCurrentStepIndex(-1);
-        setResponses({ graces: "", lumieres: "", peches: "", resolution: "" });
-    };
+    // --- Render Functions ---
 
-    // Render Intro
     const renderIntro = () => (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-500">
             <div className="text-center py-6">
-                <div className="text-5xl mb-4">🪞</div>
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+                <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
                     Examen de Conscience
-                </h2>
-                <p className="text-slate-500 max-w-md mx-auto">
-                    L'examen de conscience est une prière quotidienne recommandée par Saint Ignace
-                    pour relire sa journée sous le regard de Dieu.
+                </h1>
+                <p className="text-slate-500 dark:text-slate-400 max-w-lg mx-auto">
+                    Prends un temps de calme pour relire ta vie à la lumière des commandements de Dieu, afin de recevoir sa miséricorde.
                 </p>
             </div>
 
-            <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200">
-                <CardContent className="p-6">
-                    <h3 className="font-bold text-purple-800 dark:text-purple-300 mb-3">
-                        Les 4 étapes
-                    </h3>
-                    <div className="space-y-3">
-                        {STEPS.map((step, index) => (
-                            <div key={step.id} className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-800/50 flex items-center justify-center text-sm font-bold text-purple-700 dark:text-purple-300">
-                                    {index + 1}
-                                </div>
-                                <div>
-                                    <p className="font-medium text-slate-700 dark:text-slate-300">
-                                        {step.title}
-                                    </p>
-                                    <p className="text-xs text-slate-500">{step.description}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200">
-                <CardContent className="p-4 text-center">
-                    <p className="text-sm text-amber-800 dark:text-amber-300 italic">
-                        "Avant de commencer, fais le signe de la croix et demande à l'Esprit Saint
-                        de t'éclairer sur ta journée."
+            <Card className="border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10">
+                <CardHeader>
+                    <CardTitle className="text-lg text-purple-800 dark:text-purple-300">Prière à l'Esprit Saint</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="italic text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                        {priereEspritSaint.trim()}
                     </p>
                 </CardContent>
             </Card>
 
             <Button
+                onClick={handleNext}
                 size="lg"
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-                onClick={() => setCurrentStepIndex(0)}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white gap-2"
             >
-                Commencer l'examen
-                <ChevronRight className="w-5 h-5 ml-2" />
+                Commencer <ArrowRight className="w-4 h-4" />
             </Button>
         </div>
     );
 
-    // Render Step
-    const renderStep = () => {
-        if (!currentStep) return null;
-
-        const StepIcon = currentStep.icon;
+    const renderCommandment = (index: number) => {
+        const cmd = commandements[index]; // array index 0-9
 
         return (
-            <div className="space-y-6">
-                {/* Progress */}
-                <Card className="bg-purple-50 dark:bg-purple-900/20">
-                    <CardContent className="p-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <Badge className="bg-purple-500 text-white">
-                                Étape {currentStepIndex + 1}/{STEPS.length}
-                            </Badge>
-                            <span className="text-sm text-slate-500">
-                                {currentStep.title}
-                            </span>
-                        </div>
-                        <Progress value={progressPercent} className="h-2" />
-                    </CardContent>
-                </Card>
+            <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                <div className="flex items-center justify-between text-sm text-slate-500">
+                    <span>Commandement {cmd.numero}/10</span>
+                    <span>{selectedPeches.size} péchés notés</span>
+                </div>
 
-                {/* Step Content */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                <StepIcon className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
-                                <CardTitle className="text-lg">
-                                    {currentStep.title}
-                                </CardTitle>
-                                <p className="text-sm text-slate-500">
-                                    {currentStep.description}
-                                </p>
-                            </div>
-                        </div>
+                <Progress value={(cmd.numero / 10) * 100} className="h-2" />
+
+                <Card className="border-l-4 border-l-purple-500 shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="text-xl font-serif text-slate-900 dark:text-slate-100">
+                            {cmd.titre}
+                        </CardTitle>
+                        <CardDescription className="text-base text-slate-600 dark:text-slate-400">
+                            {cmd.description}
+                        </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <p className="text-slate-700 dark:text-slate-300 mb-4 italic">
-                            "{currentStep.question}"
-                        </p>
-                        <Textarea
-                            placeholder="Écris tes réflexions ici... (optionnel)"
-                            className="min-h-[150px] resize-none"
-                            value={responses[currentStep.id]}
-                            onChange={(e) => setResponses({
-                                ...responses,
-                                [currentStep.id]: e.target.value,
-                            })}
-                        />
+                    <CardContent className="space-y-4">
+                        {cmd.peches.map((peche) => (
+                            <div
+                                key={peche.id}
+                                className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors cursor-pointer ${selectedPeches.has(peche.id)
+                                        ? "bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800"
+                                        : "bg-white border-slate-100 hover:bg-slate-50 dark:bg-slate-950 dark:border-slate-800 dark:hover:bg-slate-900"
+                                    }`}
+                                onClick={() => handleTogglePeche(peche.id)}
+                            >
+                                <Checkbox
+                                    checked={selectedPeches.has(peche.id)}
+                                    // Managed by parent div click
+                                    className="mt-1"
+                                />
+                                <label className="text-sm font-medium leading-none cursor-pointer text-slate-700 dark:text-slate-200 leading-relaxed">
+                                    {peche.text}
+                                </label>
+                            </div>
+                        ))}
                     </CardContent>
                 </Card>
 
-                {/* Navigation */}
-                <div className="flex gap-3">
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={handlePrev}
-                        className="flex-1"
-                    >
-                        <ChevronLeft className="w-5 h-5 mr-1" />
-                        Précédent
+                <div className="flex gap-3 pt-4">
+                    <Button variant="outline" onClick={handlePrev} className="flex-1">
+                        <ChevronLeft className="w-4 h-4 mr-2" /> Retour
                     </Button>
-                    <Button
-                        size="lg"
-                        onClick={handleNext}
-                        className="flex-[2] bg-gradient-to-r from-purple-500 to-pink-600"
-                    >
-                        {currentStepIndex === STEPS.length - 1 ? (
-                            <>
-                                <Check className="w-5 h-5 mr-2" />
-                                Terminer
-                            </>
-                        ) : (
-                            <>
-                                Suivant
-                                <ChevronRight className="w-5 h-5 ml-2" />
-                            </>
-                        )}
+                    <Button onClick={handleNext} className="flex-[2] bg-purple-600 hover:bg-purple-700 text-white">
+                        {index === 9 ? "Voir le résumé" : "Suivant"} <ChevronRight className="w-4 h-4 ml-2" />
                     </Button>
                 </div>
             </div>
         );
     };
 
-    // Render Complete
-    const renderComplete = () => (
-        <div className="space-y-6 text-center py-8">
-            <div className="text-6xl mb-4">✨</div>
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-                Examen terminé
-            </h2>
-            <p className="text-slate-500 max-w-md mx-auto">
-                Merci d'avoir pris ce temps avec le Seigneur.
-                Termine par un Notre Père et demande la grâce de mieux L'aimer demain.
+    const renderSummary = () => {
+        const pechesList = Array.from(selectedPeches).map(id => {
+            for (const cmd of commandements) {
+                const peche = cmd.peches.find(p => p.id === id);
+                if (peche) return { ...peche, cmdTitle: cmd.titre };
+            }
+            return null;
+        }).filter(Boolean) as { id: string, text: string, cmdTitle: string }[];
+
+        return (
+            <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Résumé de mon examen</h2>
+                    <p className="text-slate-500 mt-2">Prêt à demander pardon ?</p>
+                </div>
+
+                <Card className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <ScrollText className="w-5 h-5 text-purple-600" />
+                            Mes manquements ({pechesList.length})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {pechesList.length === 0 ? (
+                            <div className="text-center py-8 text-slate-500">
+                                Aucun péché spécifique noté.
+                                <br />"Si nous disons que nous n'avons pas de péché, nous nous abusons nous-mêmes" (1 Jean 1:8)
+                            </div>
+                        ) : (
+                            <ul className="space-y-3">
+                                {pechesList.map((p, i) => (
+                                    <li key={i} className="flex gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                        <span className="text-purple-500">•</span>
+                                        <span>{p.text}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <div className="flex gap-3">
+                    <Button variant="outline" onClick={handlePrev} className="flex-1">
+                        Modifier
+                    </Button>
+                    <Button
+                        onClick={handleGeneratePrayer}
+                        className="flex-[2] bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all"
+                    >
+                        <Sparkles className="w-4 h-4 mr-2" /> Générer ma prière de confession
+                    </Button>
+                </div>
+            </div>
+        );
+    };
+
+    const renderGenerating = () => (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4 animate-in fade-in duration-500">
+            <div className="relative">
+                <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-purple-600 animate-pulse" />
+                </div>
+            </div>
+            <h3 className="text-xl font-medium text-slate-900 dark:text-slate-100">Rédaction de votre prière...</h3>
+            <p className="text-slate-500 max-w-sm">
+                L'IA compose un acte de contrition personnalisé basé sur votre examen.
             </p>
+        </div>
+    );
 
-            <Card className="bg-green-50 dark:bg-green-900/20 border-green-200">
-                <CardContent className="p-6">
-                    <p className="text-green-800 dark:text-green-300 italic">
-                        "Seigneur, je te confie cette journée. Pardonne mes fautes,
-                        bénis le bien que tu m'as permis de faire, et donne-moi ta paix. Amen."
-                    </p>
-                </CardContent>
-            </Card>
+    const renderFinal = () => (
+        <div className="space-y-8 animate-in zoom-in-95 duration-500">
+            <div className="text-center">
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600 dark:text-green-400">
+                    <Check className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Examen terminé</h2>
+                <p className="text-slate-500">Vous pouvez réciter cette prière ou l'emporter pour votre confession.</p>
+            </div>
 
-            <div className="flex gap-4 justify-center">
-                <Button variant="outline" onClick={handleReset}>
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Recommencer
+            <div className="grid gap-6 md:grid-cols-2">
+                {/* Prière personnalisée */}
+                <Card className="border-purple-200 dark:border-purple-800 bg-purple-50/30 dark:bg-purple-900/10">
+                    <CardHeader>
+                        <CardTitle className="text-purple-800 dark:text-purple-300 flex items-center gap-2">
+                            <Sparkles className="w-4 h-4" /> Ma Prière Personnalisée
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line font-serif text-lg">
+                            {generatedPrayer}
+                        </p>
+                    </CardContent>
+                    <CardFooter className="justify-end pt-0">
+                        <Button variant="ghost" size="sm" onClick={() => window.print()}>
+                            <Printer className="w-4 h-4 mr-2" /> Imprimer
+                        </Button>
+                    </CardFooter>
+                </Card>
+
+                {/* Acte de Contrition Classique */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-slate-700 dark:text-slate-300">Acte de Contrition</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-line">
+                            {acteContrition.trim()}
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="flex justify-center pt-4">
+                <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => navigate("/priere")}
+                    className="mr-4"
+                >
+                    Retour à l'accueil
                 </Button>
-                <Button onClick={() => navigate("/priere")}>
-                    Retour
+                <Button
+                    size="lg"
+                    onClick={() => { setStep(0); setSelectedPeches(new Set()); setGeneratedPrayer(null); }}
+                    className="bg-slate-900 text-white hover:bg-slate-800"
+                >
+                    <RotateCcw className="w-4 h-4 mr-2" /> Nouvel Examen
                 </Button>
             </div>
         </div>
@@ -274,27 +329,13 @@ const ExamenConsciencePage = () => {
 
     return (
         <DashboardLayout>
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-6">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => currentStepIndex === -1 ? navigate("/priere") : handlePrev()}
-                    className="shrink-0"
-                >
-                    <ChevronLeft className="w-6 h-6" />
-                </Button>
-                <div className="flex-1 min-w-0">
-                    <h1 className="text-xl font-serif font-bold text-slate-900 dark:text-slate-50">
-                        Examen de Conscience
-                    </h1>
-                </div>
+            <div className="max-w-3xl mx-auto px-4 py-6" ref={scrollAreaRef}>
+                {step === 0 && renderIntro()}
+                {step >= 1 && step <= 10 && renderCommandment(step - 1)}
+                {step === 11 && renderSummary()}
+                {step === 12 && renderGenerating()}
+                {step === 13 && renderFinal()}
             </div>
-
-            {/* Content */}
-            {currentStepIndex === -1 && renderIntro()}
-            {currentStepIndex >= 0 && currentStepIndex < STEPS.length && renderStep()}
-            {currentStepIndex >= STEPS.length && renderComplete()}
         </DashboardLayout>
     );
 };

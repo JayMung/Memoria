@@ -678,15 +678,7 @@ const BiblePage = () => {
     // Render Testament Selection
     const renderTestamentSelection = () => (
         <div className="space-y-4">
-            <div className="text-center py-8">
-                <BookOpen className="w-16 h-16 mx-auto mb-4 text-amber-600" />
-                <h2 className="text-2xl font-serif font-bold text-slate-800 dark:text-slate-200 mb-2">
-                    Bible Catholique
-                </h2>
-                <p className="text-slate-500">73 livres • Methode MEMORIA FIDEI</p>
-            </div>
-
-            <div className="grid gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card
                     className="cursor-pointer hover:border-amber-500 transition-all active:scale-98"
                     onClick={() => handleSelectTestament("at")}

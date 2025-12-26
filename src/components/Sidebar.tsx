@@ -12,6 +12,7 @@ import {
     Menu,
     ChevronRight,
     Library,
+    PenTool,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -19,6 +20,7 @@ const navItems = [
     { icon: Home, label: "Accueil", href: "/dashboard" },
     { icon: Library, label: "Bible", href: "/bible" },
     { icon: BookOpen, label: "Parcours", href: "/parcours" },
+    { icon: PenTool, label: "Notes", href: "/notes" },
     { icon: Brain, label: "Mémoire", href: "/memoire" },
     { icon: Shield, label: "Apologétique", href: "/apologetique" },
     { icon: Heart, label: "Prière", href: "/priere" },

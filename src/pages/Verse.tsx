@@ -80,6 +80,11 @@ const VersePage = () => {
     // Memorization mutation
     const markAsMemorized = useMutation(api.progress.markAsMemorized);
 
+    // Read marking mutation and query
+    // Read marking mutation and query
+    const markAsRead = useMutation(api.progress.markVerseAsRead);
+    const isRead = useQuery(api.progress.isVerseRead, verseId ? { verseId } : "skip");
+
     // Debug Auth
     const authDebug = useQuery(api.debug.debugAuth);
     useEffect(() => {
@@ -148,13 +153,23 @@ const VersePage = () => {
         }
     };
 
-    const handleMarkAsRead = () => {
-        setMarkedAsRead(true);
-        // TODO: Save to database for progress tracking
-        // For now, just show success and navigate back
-        setTimeout(() => {
-            handleBack();
-        }, 500);
+    const handleMarkAsRead = async () => {
+        if (!verseId) return;
+
+        if (!isSignedIn) {
+            navigate("/sign-in");
+            return;
+        }
+
+        try {
+            await markAsRead({ verseId });
+            setMarkedAsRead(true);
+            setTimeout(() => {
+                handleBack();
+            }, 1000);
+        } catch (error) {
+            console.error("Error marking as read:", error);
+        }
     };
 
     // Get chapter ID for memorization

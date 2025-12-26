@@ -168,10 +168,13 @@ export const getUserStats = query({
         // Streak is a placeholder for now (would need daily tracking)
         const streak = chaptersMemorized > 0 ? Math.min(chaptersMemorized, 30) : 0;
 
+        const xp = chaptersMemorized * 100;
+
         return {
             chaptersMemorized,
             streak,
             level,
+            xp,
             reviewsToday,
         };
     },
@@ -270,5 +273,74 @@ export const getAllMemorized = query({
                 displayName: `${bookId.charAt(0).toUpperCase() + bookId.slice(1)} ${chapter}`,
             };
         });
+    },
+});
+
+// Mark a verse as read
+export const markVerseAsRead = mutation({
+    args: {
+        verseId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("Not authenticated");
+        }
+
+        const userEmail = identity.email || `${identity.subject}@clerk.user`;
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", userEmail))
+            .first();
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const existing = await ctx.db
+            .query("readVerses")
+            .withIndex("by_user_verse", (q) => q.eq("userId", user._id).eq("verseId", args.verseId))
+            .first();
+
+        if (!existing) {
+            await ctx.db.insert("readVerses", {
+                userId: user._id,
+                verseId: args.verseId,
+                readAt: Date.now(),
+            });
+            return "Marked as read";
+        }
+
+        return "Already read";
+    },
+});
+
+// Check if a verse is read
+export const isVerseRead = query({
+    args: {
+        verseId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            return false;
+        }
+
+        const userEmail = identity.email || `${identity.subject}@clerk.user`;
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", userEmail))
+            .first();
+
+        if (!user) {
+            return false;
+        }
+
+        const existing = await ctx.db
+            .query("readVerses")
+            .withIndex("by_user_verse", (q) => q.eq("userId", user._id).eq("verseId", args.verseId))
+            .first();
+
+        return !!existing;
     },
 });

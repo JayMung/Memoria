@@ -164,7 +164,7 @@ const PrieresTraditionnellesPage = () => {
                         </div>
                     )}
 
-                    <ScrollArea className="flex-1 pr-4">
+                    <ScrollArea className="flex-1 max-h-[60vh] pr-4">
                         <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200">
                             <CardContent className="p-6">
                                 <p className="text-lg text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed font-serif">
