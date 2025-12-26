@@ -14,14 +14,26 @@ import {
   MessageCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useEffect } from "react";
 
 import DashboardLayout from "@/components/DashboardLayout";
 import SeedButton from "@/components/SeedButton";
 
 const Dashboard = () => {
   const chapters = useQuery(api.memoria.listChapters);
+  const readingPlan = useQuery(api.bibleYear.getPlan);
+  const seedPlan = useMutation(api.bibleYear.seedPlan);
+
+  // Auto-seed if plan is empty (Critical for fresh Production deployment)
+  useEffect(() => {
+    if (readingPlan && readingPlan.length === 0) {
+      console.log("Seeding reading plan...");
+      seedPlan();
+    }
+  }, [readingPlan]);
+
   const stats = useQuery(api.progress.getUserStats) ?? {
     chaptersMemorized: 0,
     streak: 0,
@@ -182,7 +194,7 @@ function NextReadingCard() {
   const plan = useQuery(api.bibleYear.getPlan);
   const progress = useQuery(api.bibleYear.getUserProgress);
 
-  if (!plan) return <CardLoader />;
+  if (!plan || plan.length === 0) return <CardLoader />;
 
   // Find next unfinished day
   const completedReadings = new Set(progress?.completedReadings || []);
@@ -246,7 +258,7 @@ function UpcomingReadings() {
   const plan = useQuery(api.bibleYear.getPlan);
   const progress = useQuery(api.bibleYear.getUserProgress);
 
-  if (!plan) return <div className="text-center py-10"><Loader2 className="w-6 h-6 animate-spin mx-auto text-amber-600" /></div>;
+  if (!plan || plan.length === 0) return <div className="text-center py-10"><Loader2 className="w-6 h-6 animate-spin mx-auto text-amber-600" /></div>;
 
   const completedReadings = new Set(progress?.completedReadings || []);
   const currentDayIndex = plan.findIndex(day =>
